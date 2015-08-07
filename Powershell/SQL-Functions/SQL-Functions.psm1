@@ -135,7 +135,7 @@ FROM [sys].[configurations] c JOIN @config_defaults d on c.[name] = d.[name] WHE
         $totalstep = $instances.Count
         $stepnum   = 0
         foreach ($inst in $instances){
-	        Write-Verbose "Executing against $($inst.InstanceName)"
+	    Write-Verbose "Executing against $($inst.InstanceName)"
             $stepnum++
             Write-Progress -id 1 -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             Write-Verbose "Executing query"
@@ -157,10 +157,10 @@ FUNCTION Get-SqlFailedJobs {
 .SYNOPSIS 
     Returns a list of failed production SQL jobs over the last 24 hours
 .DESCRIPTION
-	Dependendencies  : SQL Server SMO
+    Dependendencies  : SQL Server SMO
     SQL Permissions  : SQLAgentUserRole on each of the instances and read to ServerInventory database
 .PARAMETER  Instance
-	The name of the instance you wish to check jobs on
+    The name of the instance you wish to check jobs on
 .EXAMPLE
     PS C:\> Get-SqlFailedJobs -Instances DEV-MSSQL
 .NOTES
@@ -176,10 +176,10 @@ FUNCTION Get-SqlFailedJobs {
     Param(
         [Parameter(Position=0,Mandatory=$false,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="Name of the instance(s) to check, leave off for all production instances")]
         [ValidateScript({Test-SqlConnection -Instance $_})]
-	    [string[]]$Instance,
+	[string[]]$Instance,
         [Parameter(Position=1,Mandatory=$false,HelpMessage="Number of days to go back, default of 1")]
         [ValidateNotNullorEmpty()]
-	    [int]$Days = 1
+	[int]$Days = 1
     )
  
     begin {
@@ -212,7 +212,7 @@ FUNCTION Get-SqlFailedJobs {
         $stepnum   = 0
         # Loop through each instance
         foreach ($inst in $instances){
-	        Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
+	    Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
             $stepnum++
             Write-Progress -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             # Set up SMO server object to pull data from
@@ -280,11 +280,11 @@ FUNCTION Get-SqlLastBackups {
 .SYNOPSIS 
     Gets the last full, diff, and log backup datetime
 .DESCRIPTION
-	Gets the last full, diff, and log backup datetime, as well as the latest backup of the three types and any common issues (missing backups, old backups, no log backups in a logged recovery model)
+    Gets the last full, diff, and log backup datetime, as well as the latest backup of the three types and any common issues (missing backups, old backups, no log backups in a logged recovery model)
 .PARAMETER  Instance
-	The name of the instance(s) you wish to check.  Leaving this off will pull all instances from the inventory
+    The name of the instance(s) you wish to check.  Leaving this off will pull all instances from the inventory
 .PARAMETER  RPO
-	The RPO in hours for the databases.  Specifying this will return any databases that violate this RPO
+    The RPO in hours for the databases.  Specifying this will return any databases that violate this RPO
 .EXAMPLE
     PS C:\> Get-SqlLastBackups -Instance sql01 -RPO 1
 .EXAMPLE
@@ -336,7 +336,7 @@ FUNCTION Get-SqlLastBackups {
         $totalstep = $instances.Count
         $stepnum   = 0
         foreach ($inst in $instances){
-	        Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
+	    Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
             $stepnum++
             Write-Progress -id 1 -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             Write-Verbose "Setting up SMO server object for $($inst.InstanceName) to pull data from"
@@ -397,9 +397,9 @@ FUNCTION Get-SqlMaxMemory {
 .SYNOPSIS 
     Generates a value to be used for max memory
 .DESCRIPTION
-	Generates a value to be used for max memory (in MB) based on the total available RAM for the system.  Reserves 1 GB of RAM for the OS, 1 GB for each 4 GB of RAM installed from 4–16 GB, and then 1 GB for every 8 GB RAM installed above 16 GB RAM
+    Generates a value to be used for max memory (in MB) based on the total available RAM for the system.  Reserves 1 GB of RAM for the OS, 1 GB for each 4 GB of RAM installed from 4–16 GB, and then 1 GB for every 8 GB RAM installed above 16 GB RAM
 .PARAMETER  RAM
-	Requires the amount of RAM currently in the system, uses bytes if no unit is specified
+    Requires the amount of RAM currently in the system, uses bytes if no unit is specified
 .EXAMPLE
     PS C:\> Get-SqlMaxMemory -RAM 16GB
 .NOTES
@@ -415,9 +415,9 @@ FUNCTION Get-SqlMaxMemory {
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Amount of RAM in the system, uses bytes if no unit is specified",ValueFromPipeline)]
+	[Parameter(Position=0,Mandatory,HelpMessage="Amount of RAM in the system, uses bytes if no unit is specified",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	    [long]$RAM
+	[long]$RAM
     )
 
     begin {
@@ -493,7 +493,7 @@ FUNCTION Get-SqlSecurity {
 .SYNOPSIS 
     Gets Security Information for SQL instances/databases
 .DESCRIPTION
-	Dependendencies  : SQLPS Module, SQL Server 2005+
+    Dependendencies  : SQLPS Module, SQL Server 2005+
     SQL Permissions  : sysadmin or maybe securityadmin on each instance
 
     Step 0     : Import SQLPS Module
@@ -502,7 +502,7 @@ FUNCTION Get-SqlSecurity {
     Step 3     : Pull security information for each instance and write to CSV
     Step 4     : Write CSV report of aggregate data for all instances processed
 .PARAMETER  Instance
-	The name of the instance you wish to check connections to
+    The name of the instance you wish to check connections to
 .EXAMPLE
     PS C:\> Get-SqlSecurity -Instance DEV-MSSQL
 .NOTES
@@ -518,13 +518,13 @@ FUNCTION Get-SqlSecurity {
     Param(
         [Parameter(Position=0,Mandatory=$false,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="Name of the instance(s) to check, leave off for all production instances")]
         [ValidateScript({Test-SqlConnection -Instance $_})]
-	    [string[]]$Instance,
+	[string[]]$Instance,
         [Parameter(Position=1,Mandatory=$false,HelpMessage="Location to output CSV reports, leave off to only output an object")]
         [ValidateScript({Test-Path $_ -PathType Container})]
-	    [string]$ReportPath,
+	[string]$ReportPath,
         [Parameter(Position=2,Mandatory=$false,HelpMessage="Returns an object with selected information (logins/users, role memberships, or explicit permissions)")]
         [ValidateSet("Security","Roles","Permissions")]
-	    [string]$Output
+	[string]$Output
     )
  
     begin {
@@ -787,7 +787,7 @@ FUNCTION Import-SQLPS {
 .SYNOPSIS 
     Imports the SQLPS module with error checking
 .DESCRIPTION
-	Imports the SQLPS module if it is not already loaded, with a basic try-catch-throw to avoid executing the rest of a script as well as avoiding changing the path to SQLSERVER:\
+    Imports the SQLPS module if it is not already loaded, with a basic try-catch-throw to avoid executing the rest of a script as well as avoiding changing the path to SQLSERVER:\
 .EXAMPLE
     PS C:\> Import-SQLPS
 .NOTES
@@ -828,12 +828,12 @@ FUNCTION Start-SqlAgentJob {
 .SYNOPSIS 
     Starts a SQL agent job
 .DESCRIPTION
-	Dependendencies  : SQL Server SMO
+    Dependendencies  : SQL Server SMO
     SQL Permissions  : Ability to execute the job
 .PARAMETER  Instance
-	The name of the instance you wish to start the job on
+    The name of the instance you wish to start the job on
 .PARAMETER  Job
-	The name of the job you wish to start
+    The name of the job you wish to start
 .EXAMPLE
     PS C:\> Start-SqlAgentJob -Instance DEV-MSSQL -Job "Test Job"
 .NOTES
@@ -853,31 +853,31 @@ FUNCTION Start-SqlAgentJob {
         if ($instance){
             Import-SQLPS
             $server = New-Object Microsoft.SqlServer.Management.Smo.Server $instance
-		    $server.ConnectionContext.ConnectTimeout = 2
-		    try { $server.ConnectionContext.Connect() } catch { return }
+	    $server.ConnectionContext.ConnectTimeout = 2
+	    try { $server.ConnectionContext.Connect() } catch { return }
 	
-		    # Populate array
-		    $agentjoblist = @()
-		    foreach ($agentjob in $server.JobServer.Jobs){ $agentjoblist += $agentjob.name }
+	    # Populate array
+	    $agentjoblist = @()
+	    foreach ($agentjob in $server.JobServer.Jobs){ $agentjoblist += $agentjob.name }
 
-		    # Reusable parameter setup
-		    $newparams  = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-		    $attributes = New-Object System.Management.Automation.ParameterAttribute
+	    # Reusable parameter setup
+	    $newparams  = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+	    $attributes = New-Object System.Management.Automation.ParameterAttribute
 		
-		    $attributes.ParameterSetName = "__AllParameterSets"
-		    $attributes.Mandatory = $true
+	    $attributes.ParameterSetName = "__AllParameterSets"
+	    $attributes.Mandatory = $true
 		
-		    # Database list parameter setup
-		    if ($agentjoblist) { $ajvalidationset = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $agentjoblist }
-		    $ajattributes = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
-		    $ajattributes.Add($attributes)
-		    if ($agentjoblist) { $ajattributes.Add($ajvalidationset) }
-		    $agentjobs = New-Object -Type System.Management.Automation.RuntimeDefinedParameter("Job", [String], $ajattributes)
+	    # Database list parameter setup
+	    if ($agentjoblist) { $ajvalidationset = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $agentjoblist }
+	    $ajattributes = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
+	    $ajattributes.Add($attributes)
+	    if ($agentjoblist) { $ajattributes.Add($ajvalidationset) }
+	    $agentjobs = New-Object -Type System.Management.Automation.RuntimeDefinedParameter("Job", [String], $ajattributes)
 		
-		    $newparams.Add("Job", $agentjobs)			
-		    $server.ConnectionContext.Disconnect()
+	    $newparams.Add("Job", $agentjobs)			
+	    $server.ConnectionContext.Disconnect()
 	
-	        return $newparams
+	    return $newparams
         }
     }
  
@@ -932,9 +932,9 @@ FUNCTION Test-SqlConnection {
 .SYNOPSIS 
     Test connection to SQL Instance
 .DESCRIPTION
-	Test connection to SQL Instance
+    Test connection to SQL Instance
 .PARAMETER  Instance
-	The name of the instance you wish to check connections to
+    The name of the instance you wish to check connections to
 .EXAMPLE
     PS C:\> Test-SQLConnection -Instance DEV-MSSQL
 .NOTES
@@ -948,7 +948,7 @@ FUNCTION Test-SqlConnection {
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="The name of the instance")]
+        [Parameter(Position=0,Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="The name of the instance")]
         [ValidateNotNullorEmpty()]
         [string]$Instance
     )
