@@ -27,9 +27,10 @@ FUNCTION Get-SqlMaxMemory {
     )
 
     begin {
-        Write-Verbose "Starting $($MyInvocation.Mycommand)"  
         Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
-        Write-Verbose ($PSBoundParameters | out-string)
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
     }
  
     process {
