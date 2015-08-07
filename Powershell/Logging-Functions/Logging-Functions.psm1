@@ -17,18 +17,19 @@ FUNCTION Start-Log{
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path for the log directory",ValueFromPipeline)]
-        [ValidateNotNullorEmpty()]
-	    [String]$Path,
+	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path for the log directory")]
+        [ValidateScript({Test-Path $_ -PathType Container})]
+	    [string]$Path,
         [Parameter(Position=1,Mandatory,HelpMessage="Enter the name of the log",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	    [String]$Name
+	    [string]$Name
     )  
 
     begin {
-        Write-Verbose "Starting $($MyInvocation.Mycommand)"  
         Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
-        Write-Verbose ($PSBoundParameters | out-string)
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
     }
 
     process {
@@ -41,10 +42,12 @@ FUNCTION Start-Log{
                 Write-Verbose "Backed up existing log to $bakpath"
             }
             
-            New-Item -Path $path -Name $name -ItemType file -ErrorAction Stop | Out-Null
+            New-Item -Path $path -Name $name -ItemType file -ErrorAction Stop > $null
             Write-Verbose "Created log at $fullpath"
             Add-Content -Path $fullpath -Value "Log started: at [$([DateTime]::Now)] by $env:USERNAME on $env:COMPUTERNAME"
             Add-Content -Path $fullpath -Value "--------------------------------------------------------------------`n"
+            Add-Content -Path $fullpath -Value "Datetime`t`tExecuting User`tMessage`n"
+            Add-Content -Path $fullpath -Value "-------------------`t--------------`t----------------------------`n"
             Write-Verbose "Started Log at $fullpath"
         }
         catch { Write-Error $_ }
@@ -72,27 +75,25 @@ FUNCTION Write-Log{
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file",ValueFromPipeline)]
-        [ValidateNotNullorEmpty()]
-	    [String]$Path,
+	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file")]
+        [ValidateScript({Test-Path $_ -PathType Leaf})]
+	    [string]$Path,
         [Parameter(Position=1,Mandatory,HelpMessage="Enter the line to add to the log",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	    [String]$Line
+	    [string]$Line
     )  
 
     begin {
-        Write-Verbose "Starting $($MyInvocation.Mycommand)"  
         Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
-        Write-Verbose ($PSBoundParameters | out-string)
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
     }
 
     process{
-        if(Test-Path -Path $path){
-            $timeline = "$([DateTime]::Now)" + "`t" + $env:USERNAME + "`t" + $line
-            Write-Verbose "Writing $timeline to $path" 
-            Add-Content -Path $path -Value $timeline
-        }
-        else{ Write-Error "Log does not exist at $path " -Category ResourceUnavailable }
+        $timeline = "$([DateTime]::Now)" + "`t" + $env:USERNAME + "`t" + $line
+        Write-Verbose "Writing $timeline to $path" 
+        Add-Content -Path $path -Value $timeline
   }
 }
   
@@ -114,23 +115,21 @@ FUNCTION Stop-Log{
     [CmdletBinding()]
     Param(
 	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file",ValueFromPipeline)]
-        [ValidateNotNullorEmpty()]
-	    [String]$Path
+        [ValidateScript({Test-Path $_ -PathType Leaf})]
+	    [string]$Path
     )  
 
     begin {
-        Write-Verbose "Starting $($MyInvocation.Mycommand)"  
         Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
-        Write-Verbose ($PSBoundParameters | out-string)
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
     }
 
     process {
-        if(Test-Path -Path $path){ 
-            Write-Verbose "Finalizing Log at $path"
-            Add-Content -Path $Path -Value "`n--------------------------------------------------------------------"
-            Add-Content -Path $Path -Value "Log ended:   at [$([DateTime]::Now)] by $env:USERNAME on $env:COMPUTERNAME"
-        }
-        else{ Write-Error "Log does not exist at $path " -Category ResourceUnavailable }
+        Write-Verbose "Finalizing Log at $path"
+        Add-Content -Path $Path -Value "`n--------------------------------------------------------------------"
+        Add-Content -Path $Path -Value "Log ended:   at [$([DateTime]::Now)] by $env:USERNAME on $env:COMPUTERNAME"
     }
 
     end { Write-Verbose "Ending $($MyInvocation.Mycommand)" }
