@@ -17,12 +17,12 @@ FUNCTION Start-Log{
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path for the log directory")]
+	[Parameter(Position=0,Mandatory,HelpMessage="Enter the path for the log directory")]
         [ValidateScript({Test-Path $_ -PathType Container})]
-	    [string]$Path,
+	[string]$Path,
         [Parameter(Position=1,Mandatory,HelpMessage="Enter the name of the log",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	    [string]$Name
+	[string]$Name
     )  
 
     begin {
@@ -75,12 +75,12 @@ FUNCTION Write-Log{
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file")]
+	[Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file")]
         [ValidateScript({Test-Path $_ -PathType Leaf})]
-	    [string]$Path,
+	[string]$Path,
         [Parameter(Position=1,Mandatory,HelpMessage="Enter the line to add to the log",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	    [string]$Line
+	[string]$Line
     )  
 
     begin {
@@ -114,9 +114,9 @@ FUNCTION Stop-Log{
 #>
     [CmdletBinding()]
     Param(
-	    [Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file",ValueFromPipeline)]
+	[Parameter(Position=0,Mandatory,HelpMessage="Enter the path of the log file",ValueFromPipeline)]
         [ValidateScript({Test-Path $_ -PathType Leaf})]
-	    [string]$Path
+	[string]$Path
     )  
 
     begin {
