@@ -1,6 +1,6 @@
 -- Returns all enabled schedules and their descriptions for all enabled jobs
 
-SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
+SELECT @@SERVERNAME as [Server], j.[name] as [Job Name], CASE j.[enabled] WHEN 1 THEN 'Enabled' ELSE 'Disabled' END AS [Job Status],
 	-- Type of Schedule
 	CASE freq_type 
 	WHEN 1 THEN 'One time, occurs at ' + CONVERT(varchar(15), CONVERT(time, STUFF(STUFF(RIGHT('000000' + CONVERT(varchar(6), active_start_time), 6), 3, 0, ':'), 6, 0, ':')), 100) + ' on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_start_date)), 101)
@@ -62,15 +62,12 @@ SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 	WHEN '99991231' THEN '' 
 	ELSE ' and ending on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_end_date)), 101)
 	END AS [Schedule],
-	CONVERT(varchar, msdb.dbo.agent_datetime(js.next_run_date, js.next_run_time), 120) AS [Next Run Date]
+	CASE s.[enabled] WHEN 1 THEN 'Enabled' WHEN 0 THEN 'Disabled' ELSE NULL END AS [Schedule Status],
+	CASE js.next_run_date WHEN 0 THEN NULL ELSE CONVERT(varchar, msdb.dbo.agent_datetime(js.next_run_date, js.next_run_time), 120) END AS [Next Run Date]
 FROM msdb.dbo.sysjobs j
 LEFT OUTER JOIN msdb.dbo.sysjobschedules js on j.job_id = js.job_id
 LEFT OUTER JOIN msdb.dbo.sysschedules s on js.schedule_id = s.schedule_id
-WHERE j.enabled = 1 and s.enabled = 1
 ORDER BY j.name ASC
-
-
-
 
 /*
 select * from msdb.dbo.sysjobs j
