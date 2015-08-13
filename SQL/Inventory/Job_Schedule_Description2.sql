@@ -76,14 +76,15 @@ SELECT j.[name] AS [Job Name], CASE
 	WHEN STUFF((
 		SELECT '; ' + s.Schedule
 		FROM #tmpjobschedules s
-		WHERE j.name = s.[Job Name]
+		WHERE j.[name] = s.[Job Name]
 		FOR XML PATH ('')), 1, 2, '')
 		IS NULL THEN 'Not Scheduled' 
 	ELSE STUFF((
 		SELECT '; ' + s.Schedule
 		FROM #tmpjobschedules s
-		WHERE j.name = s.[Job Name]
-		FOR XML PATH ('')), 1, 2, '') END AS [Schedules]
+		WHERE j.[name] = s.[Job Name]
+		FOR XML PATH ('')), 1, 2, '') END AS [Schedules],
+	(SELECT MIN(s.[Next Run Date]) FROM #tmpjobschedules s WHERE j.[name] = s.[Job Name]) AS [Next Run Date]
 FROM msdb.dbo.sysjobs j
 
 DROP TABLE #tmpjobschedules
