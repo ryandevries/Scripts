@@ -1,4 +1,7 @@
 -- Returns all enabled schedules and their descriptions for all enabled jobs
+IF OBJECT_ID('tempdb..#tmpjobschedules') IS NOT NULL
+   DROP TABLE #tmpjobschedules
+
 SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 	-- Type of Schedule
 	CASE freq_type 
@@ -9,12 +12,12 @@ SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 	END +
 	-- Frequency of type
 	CASE
-	WHEN freq_type = 4 THEN 'Occurs every ' + 
+	WHEN freq_type = 4 THEN 'Every ' + 
 		CASE s.freq_interval 
 		WHEN 1 THEN 'day' 
 		ELSE CONVERT(varchar, s.freq_interval) + ' day(s)' 
 		END
-	WHEN freq_type = 8 THEN	'Occurs every ' + 
+	WHEN freq_type = 8 THEN	'Every ' + 
 		CASE s.freq_recurrence_factor 
 		WHEN 1 THEN 'week on ' 
 		ELSE CONVERT(varchar, s.freq_recurrence_factor) + ' week(s) on ' 
@@ -27,12 +30,12 @@ SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 			CASE WHEN s.freq_interval & 16 = 16 THEN 'Thursday ' ELSE '' END +
 			CASE WHEN s.freq_interval & 32 = 32 THEN 'Friday ' ELSE '' END	+
 			CASE WHEN s.freq_interval & 64 = 64 THEN 'Saturday ' ELSE '' END), ' ', ', ')
-	WHEN freq_type = 16 THEN 'Occurs every ' + 
+	WHEN freq_type = 16 THEN 'Every ' + 
 		CASE s.freq_recurrence_factor 
 		WHEN 1 THEN 'month on day ' 
 		ELSE CONVERT(varchar, s.freq_recurrence_factor) + ' month(s) on day ' 
 		END + CONVERT(varchar(2), s.freq_interval)
-	WHEN freq_type = 32 THEN 'Occurs every ' + 
+	WHEN freq_type = 32 THEN 'Every ' + 
 		CASE s.freq_recurrence_factor 
 		WHEN 1 THEN 'month on the ' 
 		ELSE CONVERT(varchar, s.freq_recurrence_factor) + ' month(s) on the ' 
@@ -56,25 +59,34 @@ SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 	ELSE ' between ' + CONVERT(varchar(15), CONVERT(time, STUFF(STUFF(RIGHT('000000' + CONVERT(varchar(6),s.active_start_time),6 ),3,0,':'),6,0,':')), 100) + ' and ' + CONVERT(varchar(15), CONVERT(time, STUFF(STUFF(RIGHT('000000' + CONVERT(varchar(6),active_end_time),6 ),3,0,':'),6,0,':')), 100)
 	END + 
 	-- Date bounds
-	'. Schedule will be used starting on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_start_date)), 101) +
+	', starting on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_start_date)), 101) +
 	CASE active_end_date
 	WHEN '99991231' THEN '' 
 	ELSE ' and ending on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_end_date)), 101)
 	END AS [Schedule],
 	CONVERT(varchar, msdb.dbo.agent_datetime(js.next_run_date, js.next_run_time), 120) AS [Next Run Date]
---INTO #jobschedules
+INTO #tmpjobschedules
 FROM msdb.dbo.sysjobs j
 LEFT OUTER JOIN msdb.dbo.sysjobschedules js on j.job_id = js.job_id
 LEFT OUTER JOIN msdb.dbo.sysschedules s on js.schedule_id = s.schedule_id
 WHERE j.enabled = 1 and s.enabled = 1
 ORDER BY j.name ASC
 
-SELECT j.name, Schedules = STUFF((
-	SELECT '; ' + s.Schedule	FROM #jobschedules s
-	WHERE j.name = s.[Job Name]
-	FOR XML PATH ('')), 1, 2, '')
+SELECT j.[name] AS [Job Name], CASE 
+	WHEN STUFF((
+		SELECT '; ' + s.Schedule
+		FROM #tmpjobschedules s
+		WHERE j.name = s.[Job Name]
+		FOR XML PATH ('')), 1, 2, '')
+		IS NULL THEN 'Not Scheduled' 
+	ELSE STUFF((
+		SELECT '; ' + s.Schedule
+		FROM #tmpjobschedules s
+		WHERE j.name = s.[Job Name]
+		FOR XML PATH ('')), 1, 2, '') END AS [Schedules]
 FROM msdb.dbo.sysjobs j
 
+DROP TABLE #tmpjobschedules
 
 
 
