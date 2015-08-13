@@ -3,11 +3,11 @@ FUNCTION Get-SqlConfigValue {
 .SYNOPSIS 
     Returns the configured value of a specified name on specified instances
 .DESCRIPTION
-	Returns the configured value of a specified name on specified instances
+    Returns the configured value of a specified name on specified instances
 .PARAMETER  Instance
-	The name of the instance(s) you wish to check.  Leaving this off will pull all instances from the inventory
+    The name of the instance(s) you wish to check.  Leaving this off will pull all instances from the inventory
 .PARAMETER  Config
-	The name of the configuration in sys.configurations
+    The name of the configuration in sys.configurations
 .EXAMPLE
     PS C:\> Get-SqlConfigValue -Instance sql01 -Config xp_cmdshell
 .EXAMPLE
@@ -135,7 +135,7 @@ FROM [sys].[configurations] c JOIN @config_defaults d on c.[name] = d.[name] WHE
         $totalstep = $instances.Count
         $stepnum   = 0
         foreach ($inst in $instances){
-	    Write-Verbose "Executing against $($inst.InstanceName)"
+            Write-Verbose "Executing against $($inst.InstanceName)"
             $stepnum++
             Write-Progress -id 1 -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             Write-Verbose "Executing query"
@@ -176,10 +176,10 @@ FUNCTION Get-SqlFailedJobs {
     Param(
         [Parameter(Position=0,Mandatory=$false,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="Name of the instance(s) to check, leave off for all production instances")]
         [ValidateScript({Test-SqlConnection -Instance $_})]
-	[string[]]$Instance,
+        [string[]]$Instance,
         [Parameter(Position=1,Mandatory=$false,HelpMessage="Number of days to go back, default of 1")]
         [ValidateNotNullorEmpty()]
-	[int]$Days = 1
+        [int]$Days = 1
     )
  
     begin {
@@ -212,7 +212,7 @@ FUNCTION Get-SqlFailedJobs {
         $stepnum   = 0
         # Loop through each instance
         foreach ($inst in $instances){
-	    Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
+            Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
             $stepnum++
             Write-Progress -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             # Set up SMO server object to pull data from
@@ -336,7 +336,7 @@ FUNCTION Get-SqlLastBackups {
         $totalstep = $instances.Count
         $stepnum   = 0
         foreach ($inst in $instances){
-	    Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
+            Write-Verbose "Checking $($inst.InstanceName) for failed jobs"
             $stepnum++
             Write-Progress -id 1 -Activity "Processing $($inst.InstanceName)..." -Status ("Percent Complete: " + [int](($stepnum / $totalstep) * 100) + "%") -PercentComplete (($stepnum / $totalstep) * 100)
             Write-Verbose "Setting up SMO server object for $($inst.InstanceName) to pull data from"
@@ -415,9 +415,9 @@ FUNCTION Get-SqlMaxMemory {
 #>
     [CmdletBinding()]
     Param(
-	[Parameter(Position=0,Mandatory,HelpMessage="Amount of RAM in the system, uses bytes if no unit is specified",ValueFromPipeline)]
+        [Parameter(Position=0,Mandatory,HelpMessage="Amount of RAM in the system, uses bytes if no unit is specified",ValueFromPipeline)]
         [ValidateNotNullorEmpty()]
-	[long]$RAM
+        [long]$RAM
     )
 
     begin {
@@ -518,13 +518,13 @@ FUNCTION Get-SqlSecurity {
     Param(
         [Parameter(Position=0,Mandatory=$false,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="Name of the instance(s) to check, leave off for all production instances")]
         [ValidateScript({Test-SqlConnection -Instance $_})]
-	[string[]]$Instance,
+        [string[]]$Instance,
         [Parameter(Position=1,Mandatory=$false,HelpMessage="Location to output CSV reports, leave off to only output an object")]
         [ValidateScript({Test-Path $_ -PathType Container})]
-	[string]$ReportPath,
+        [string]$ReportPath,
         [Parameter(Position=2,Mandatory=$false,HelpMessage="Returns an object with selected information (logins/users, role memberships, or explicit permissions)")]
         [ValidateSet("Security","Roles","Permissions")]
-	[string]$Output
+        [string]$Output
     )
  
     begin {
@@ -847,37 +847,37 @@ FUNCTION Start-SqlAgentJob {
     Param(
         [Parameter(Position=0,Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName,HelpMessage="Name of the instance the job is on")]
         [ValidateScript({Test-SqlConnection -Instance $_})]
-	    [string]$Instance
+        [string]$Instance
     )
     DynamicParam {
         if ($instance){
             Import-SQLPS
             $server = New-Object Microsoft.SqlServer.Management.Smo.Server $instance
-	    $server.ConnectionContext.ConnectTimeout = 2
-	    try { $server.ConnectionContext.Connect() } catch { return }
+            $server.ConnectionContext.ConnectTimeout = 2
+            try { $server.ConnectionContext.Connect() } catch { return }
 	
-	    # Populate array
-	    $agentjoblist = @()
-	    foreach ($agentjob in $server.JobServer.Jobs){ $agentjoblist += $agentjob.name }
+            # Populate array
+            $agentjoblist = @()
+            foreach ($agentjob in $server.JobServer.Jobs){ $agentjoblist += $agentjob.name }
 
-	    # Reusable parameter setup
-	    $newparams  = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-	    $attributes = New-Object System.Management.Automation.ParameterAttribute
+            # Reusable parameter setup
+            $newparams  = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+            $attributes = New-Object System.Management.Automation.ParameterAttribute
 		
-	    $attributes.ParameterSetName = "__AllParameterSets"
-	    $attributes.Mandatory = $true
+            $attributes.ParameterSetName = "__AllParameterSets"
+            $attributes.Mandatory = $true
 		
-	    # Database list parameter setup
-	    if ($agentjoblist) { $ajvalidationset = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $agentjoblist }
-	    $ajattributes = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
-	    $ajattributes.Add($attributes)
-	    if ($agentjoblist) { $ajattributes.Add($ajvalidationset) }
-	    $agentjobs = New-Object -Type System.Management.Automation.RuntimeDefinedParameter("Job", [String], $ajattributes)
+            # Database list parameter setup
+            if ($agentjoblist) { $ajvalidationset = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $agentjoblist }
+            $ajattributes = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
+            $ajattributes.Add($attributes)
+            if ($agentjoblist) { $ajattributes.Add($ajvalidationset) }
+            $agentjobs = New-Object -Type System.Management.Automation.RuntimeDefinedParameter("Job", [String], $ajattributes)
 		
-	    $newparams.Add("Job", $agentjobs)			
-	    $server.ConnectionContext.Disconnect()
+            $newparams.Add("Job", $agentjobs)			
+            $server.ConnectionContext.Disconnect()
 	
-	    return $newparams
+            return $newparams
         }
     }
  
@@ -912,8 +912,7 @@ FUNCTION Start-SqlAgentJob {
                     Start-Sleep -Seconds 1
                     $job.Refresh()
                     Write-Progress -Activity "Executing $($PSBoundParameters.Job) on $instance..." -Status "$([string]::Format("Time Elapsed: {0:d2}:{1:d2}:{2:d2}", $elapsedTime.Elapsed.hours, $elapsedTime.Elapsed.minutes, $elapsedTime.Elapsed.seconds))"
-                }
-                while ($job.CurrentRunStatus -eq 'Executing')
+                } while ($job.CurrentRunStatus -eq 'Executing')
                 $elapsedTime.stop()
                 $seconds = [int]$elapsedTime.Elapsed.TotalSeconds
                 Write-Output "$($PSBoundParameters.Job) completed with status: $($job.LastRunOutcome) on $($job.LastRunDate) after ~$seconds seconds."
