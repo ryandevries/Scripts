@@ -2,7 +2,7 @@
 .SYNOPSIS 
     Emails a list of failed production SQL jobs over the last 24 hours
 .DESCRIPTION 
-    Dependendencies  : SQL Server SMO, SQLFunctions Module, Ability to send mail
+    Dependendencies  : SQL Server SMO, Ability to send mail
     SQL Permissions  : SQLAgentUserRole on each of the instances and read to ServerInventory database
 .NOTES 
     Author     : Ryan DeVries
@@ -20,6 +20,8 @@ FROM [dbo].[SQLInstances] si
 JOIN [dbo].[Servers] s ON si.serverid = s.serverid 
 WHERE s.environment = 'Production' AND si.code = 2 AND si.Edition not like 'Express%'
 "@
+# Pull all Production SQL instances from Server Inventory
+$sql_instances     = (invoke-sqlcmd -ServerInstance $inventoryserver -Database $inventorydatabase -Query $get_instances_query).InstanceName 
                 
 $datefull          = Get-Date
 $today             = $datefull.ToShortDateString()
@@ -38,9 +40,6 @@ $inventorydatabase = 'ServerInventory'
 #-----------------------------------------------#
 
 [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.SMO") | out-null
-
-# Pull all Production SQL instances from Server Inventory
-$sql_instances = (invoke-sqlcmd -ServerInstance $inventoryserver -Database $inventorydatabase -Query $get_instances_query).InstanceName
 
 # Set up email message
 $msg         = new-object Net.Mail.MailMessage
@@ -86,7 +85,7 @@ foreach($instance in $sql_instances){
                     # Filter out steps that succeeded
                     if($stepLastRunOutcome -eq "Failed"){
                         # Get the latest message returned for the failed step
-                        $stepMessage = (Invoke-Sqlcmd2 -ServerInstance $instance -Database msdb -Query "SELECT TOP 1 message FROM msdb.dbo.sysjobhistory WHERE job_id = '$jobID' AND step_id = '$stepID' ORDER BY instance_id DESC").message
+                        $stepMessage = (invoke-sqlcmd -ServerInstance $instance -Database msdb -Query "SELECT TOP 1 message FROM msdb.dbo.sysjobhistory WHERE job_id = '$jobID' AND step_id = '$stepID' ORDER BY instance_id DESC").message
                         
                         # Filter out steps that didn't have a chance to run (have a failed status but no message)
                         if($stepMessage.length -gt 0){
