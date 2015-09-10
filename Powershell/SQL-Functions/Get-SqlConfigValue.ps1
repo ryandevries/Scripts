@@ -118,8 +118,8 @@ INSERT INTO ##config_defaults (configuration_id, name, default_value) VALUES ('1
 INSERT INTO ##config_defaults (configuration_id, name, default_value) VALUES ('1534','user options',0)
 INSERT INTO ##config_defaults (configuration_id, name, default_value) VALUES ('16390','xp_cmdshell',0)
 
-SET @CONFIGS_PRESQL20008_TSQL  = 'SELECT @@SERVERNAME AS [ServerName], d.[name] AS [ConfigName], c.[comment] AS [Description], CONVERT(INT, [value]) AS [ConfigValue], d.[default_value] AS [DefaultValue] FROM [dbo].[sysconfigures] c JOIN ##config_defaults d on c.[config] = d.[configuration_id] WHERE d.[name] LIKE ''$config'''
-SET @CONFIGS_POSTSQL20008_TSQL = 'SELECT @@SERVERNAME AS [ServerName], d.[name] AS [ConfigName], [Description], CONVERT(INT, ISNULL([value], [value_in_use])) AS [ConfigValue], d.[default_value] AS [DefaultValue] FROM [sys].[configurations] c JOIN ##config_defaults d on c.[configuration_id] = d.[configuration_id] WHERE d.[name] LIKE ''$config'''
+SET @CONFIGS_PRESQL20008_TSQL  = 'SELECT CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''MachineName''))) AS [ServerName], CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''InstanceName'')))   AS [InstanceName],, d.[name] AS [ConfigName], c.[comment] AS [Description], CONVERT(INT, [value]) AS [ConfigValue], d.[default_value] AS [DefaultValue] FROM [dbo].[sysconfigures] c JOIN ##config_defaults d on c.[config] = d.[configuration_id] --WHERE d.[name] LIKE ''$config'''
+SET @CONFIGS_POSTSQL20008_TSQL = 'SELECT CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''MachineName''))) AS [ServerName], CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''InstanceName'')))   AS [InstanceName],, d.[name] AS [ConfigName], [Description], CONVERT(INT, ISNULL([value], [value_in_use])) AS [ConfigValue], d.[default_value] AS [DefaultValue] FROM [sys].[configurations] c JOIN ##config_defaults d on c.[configuration_id] = d.[configuration_id] --WHERE d.[name] LIKE ''$config'''
 
 IF LEFT(CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR),1)='8'
 BEGIN
