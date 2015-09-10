@@ -1,9 +1,9 @@
 FUNCTION Get-SqlConfigValue {
 <#
 .SYNOPSIS 
-    Returns the configured value of a specified name on specified instances
+    Returns the configured value of a specified name on specified instance(s)
 .DESCRIPTION
-	Returns the configured value of a specified name on specified instances
+	Returns the configured value of a specified name on specified instance(s)
 .PARAMETER  Instance
 	The name of the instance(s) you wish to check.  Leaving this off will pull all instances from the inventory
 .PARAMETER  Config
