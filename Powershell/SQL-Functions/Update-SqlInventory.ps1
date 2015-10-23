@@ -19,7 +19,7 @@
     -- TODO: Add GUIDs to job and jobsteps
 .PARAMETER  InventoryInstance
 	The name of the instance the inventory database is on
-.PARAMETER  Database
+.PARAMETER  InventoryDatabase
 	The name of the database the inventory tables are in
 .NOTES
     Author      : Ryan DeVries
