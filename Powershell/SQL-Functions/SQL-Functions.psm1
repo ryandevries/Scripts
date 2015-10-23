@@ -842,6 +842,111 @@ FUNCTION Import-SQLPS {
     end { Write-Verbose "Ending $($MyInvocation.Mycommand)" }
 }
 
+FUNCTION New-ServerInventoryServer {
+<# 
+.SYNOPSIS 
+    Adds a Server the Server Inventory for SQL Instances
+.DESCRIPTION 
+    Dependendencies  : SQLPS Module
+    SQL Permissions  : Read/Write on [$inventoryinstance].[$inventorydatabase]
+.PARAMETER  InventoryInstance
+	The name of the instance the inventory database is on
+.PARAMETER  InventoryDatabase
+	The name of the database the inventory tables are in
+.PARAMETER  ServerName
+	The name of the server you are adding
+.PARAMETER  InstanceName
+	The name of the instance if adding a SQL Server.  Leave off for default instances
+.PARAMETER  Domain
+	The name of domain the server is one.  Defaults to manning-napier.com
+.PARAMETER  Environment
+	The name of the environment the server is in - Development, Test, or Production
+.PARAMETER  OperatingSystem
+	The OS of the server
+.PARAMETER  OSVersion
+	The version of the OS of the server
+.PARAMETER  ServerType
+	The type of server, pulls from dbo.ServerType
+.NOTES
+    Author      : Ryan DeVries
+    Last Updated: 2015/10/23
+    Version     : 1
+.INPUTS
+    [string]
+#> 
+    [CmdletBinding()]
+    Param(
+        [Parameter(Position=0,Mandatory=$false,HelpMessage="Name of the instance the inventory database is on")]
+        [ValidateScript({Test-SqlConnection -Instance $_})]
+	    [string]$InventoryInstance = 'utility-db',
+        [Parameter(Position=1,Mandatory=$false,HelpMessage="Name of the database the inventory tables are in")]
+        [ValidateNotNullorEmpty()]
+	    [string]$InventoryDatabase = 'ServerInventory',        
+        [Parameter(Position=2,Mandatory=$true,HelpMessage="Name of the server")]
+        [ValidateNotNullorEmpty()]
+	    [string]$ServerName,
+        [Parameter(Position=3,Mandatory=$false,HelpMessage="Name of the instance, not required for default instances")]
+        [ValidateNotNullorEmpty()]
+	    [string]$InstanceName = 'Default Instance',
+        [Parameter(Position=5,Mandatory=$true,HelpMessage="Domain of server")]
+        [ValidateSet('manning-napier.com','Standalone','2100Capital.com')]
+	    [string]$Domain = 'manning-napier.com',
+        [Parameter(Position=6,Mandatory=$true,HelpMessage="Environment of server")]
+        [ValidateSet('Development','Test','Production')]
+	    [string]$Environment,
+        [Parameter(Position=7,Mandatory=$true,HelpMessage="Operating system of server")]
+        [ValidateSet('Server 2008 R2','Server 2012','Server 2012 R2')]
+	    [string]$OperatingSystem,
+        [Parameter(Position=8,Mandatory=$true,HelpMessage="Operating system version of server")]
+        [ValidateSet('Standard','Enterprise','Datacenter')]
+	    [string]$OSEdition
+    )
+    DynamicParam {
+        Import-SQLPS
+        $servertypes = (Invoke-Sqlcmd -ServerInstance $InventoryInstance -Database $InventoryDatabase -Query "SELECT [Type] FROM [dbo].[ServerType]" -ConnectionTimeout 5 -ErrorAction Stop).Type
+
+		# Reusable parameter setup
+		$newparams  = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+		$attributes = New-Object System.Management.Automation.ParameterAttribute
+		
+		$attributes.ParameterSetName = "__AllParameterSets"
+		$attributes.Mandatory = $true
+		
+		# Database list parameter setup
+		if ($servertypes) { $stvalidationset = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $servertypes }
+		$stattributes = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
+		$stattributes.Add($attributes)
+		if ($servertypes) { $stattributes.Add($stvalidationset) }
+		$servertypesobj = New-Object -Type System.Management.Automation.RuntimeDefinedParameter("ServerType", [String], $stattributes)
+		
+		$newparams.Add("ServerType", $servertypesobj)	
+	
+	    return $newparams
+    }
+
+    begin {
+        Import-SQLPS
+        Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
+    }
+
+    process {
+        Write-Verbose "Converting server type into ID"
+        $servertypeid = (Invoke-Sqlcmd -ServerInstance $InventoryInstance -Database $InventoryDatabase -Query "SELECT [TypeID] FROM [dbo].[ServerType] WHERE [Type] = '$($PSBoundParameters.ServerType)'" -ConnectionTimeout 5 -ErrorAction Stop).TypeID
+        $server_insert_query   = "INSERT INTO [dbo].[Servers] (TypeID, Name, Domain, Environment, OS, OSEdition) VALUES ($servertypeid,'$servername','$domain','$environment','$operatingsystem','$osedition')"
+        Write-Verbose "Inserting server information: $server_insert_query"
+        Invoke-Sqlcmd -ServerInstance $InventoryInstance -Database $InventoryDatabase -Query $server_insert_query -ConnectionTimeout 5 -ErrorAction Stop
+        $serverid = (Invoke-Sqlcmd -ServerInstance $InventoryInstance -Database $InventoryDatabase -Query "SELECT [ServerID] FROM [ServerInventory].[dbo].[Servers] WHERE [Name] = '$servername'" -ConnectionTimeout 5 -ErrorAction Stop).ServerID
+        $instance_insert_query = "INSERT INTO [ServerInventory].[dbo].[SQLInstances] (ServerID,Name,Code) VALUES ($serverid,'$instancename',2)"
+        Write-Verbose "Inserting instance information: $instance_insert_query"
+        Invoke-Sqlcmd -ServerInstance $InventoryInstance -Database $InventoryDatabase -Query $instance_insert_query -ConnectionTimeout 5 -ErrorAction Stop
+    }
+    
+    end { Write-Verbose "Ending $($MyInvocation.Mycommand)" }
+}
+
 FUNCTION Start-SqlAgentJob {
 <#
 .SYNOPSIS 
