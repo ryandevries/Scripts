@@ -5,11 +5,13 @@
 .DESCRIPTION
 	Dependendencies  : SQLPS Module, SQL Server 2000+
     SQL Permissions  : sysadmin or maybe securityadmin on each instance
-
 .PARAMETER  Instance
 	The name of the instance you wish to check connections to
+.PARAMETER  Passwords
+	The passwords you wish to check for
 .EXAMPLE
     PS C:\> Get-SqlWeakPasswords -Instance DEV-MSSQL
+    PS C:\> Get-SqlWeakPasswords -Instance DEV-MSSQL -Passwords (Get-Content C:\temp\passwords.txt)
 .NOTES
     Author      : Ryan DeVries
     Last Updated: 2015/12/08
