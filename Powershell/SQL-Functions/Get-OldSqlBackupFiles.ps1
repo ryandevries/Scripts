@@ -25,27 +25,27 @@
         $scriptstring = "Starting $($MyInvocation.MyCommand)"
         foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
         Write-Verbose $scriptstring
+        $backups = @()
     }
 
     process {
         $root  = '\\exahub03_nic4\SQL_Backups\_Requests'
         $limit = (Get-Date).AddDays(-$Age)
         $files = Get-ChildItem $root -Recurse | Where-Object { -not $_.PSIsContainer -and $_.CreationTime -lt $limit -and $_.Extension -eq '.bak'}
-
-        $backups = @()
+                
         foreach ($file in $files){
-            $holder     = New-Object -TypeName PSObject
+            $holder    = New-Object -TypeName PSObject
             $truncated = $file.FullName.Replace($root,"")
-            $server = $truncated.Split("\")[1]
-            $database = $truncated.Split("\")[2]
-            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Server' -Value $server
-            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Database' -Value $database
-            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Name' -Value $file.Name
+            $server    = $truncated.Split("\")[1]
+            $database  = $truncated.Split("\")[2]
+            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Server'       -Value $server
+            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Database'     -Value $database
+            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Name'         -Value $file.Name
             Add-Member -InputObject $holder -MemberType NoteProperty -Name 'CreationTime' -Value $file.CreationTime
-            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Path' -Value $file.Directory
+            Add-Member -InputObject $holder -MemberType NoteProperty -Name 'Path'         -Value $file.Directory
             $backups += $holder
         }
-        $backups | Sort-Object Server,Database,CreationTime | ft -AutoSize
+        $backups | Sort-Object Server,Database,CreationTime
     }
 
     end { Write-Verbose "Ending $($MyInvocation.Mycommand)" }
