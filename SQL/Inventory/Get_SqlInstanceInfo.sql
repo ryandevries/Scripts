@@ -10,8 +10,7 @@ SELECT
 	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''InstanceName'')))   AS [InstanceName],
 	CONVERT(VARCHAR(50),(SELECT 
 		CASE (SELECT LEFT(CAST(SERVERPROPERTY(''ProductVersion'') AS VARCHAR), 4))
-			WHEN ''13.0'' THEN ''SQL Server 2016''
-            WHEN ''12.0'' THEN ''SQL Server 2014''
+			WHEN ''12.0'' THEN ''SQL Server 2014''
 			WHEN ''11.0'' THEN ''SQL Server 2012''
 			WHEN ''10.5'' THEN ''SQL Server 2008 R2''
 			WHEN ''10.0'' THEN ''SQL Server 2008''
@@ -31,6 +30,7 @@ SELECT
 		END
 		)
 	)                                                                AS [Authentication],
+	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''Collation'')))      AS [Collation],
 	GETDATE()                                                        AS [Timestamp],
 '
 SET @OSSTATS_SQL2000_TSQL = '

@@ -1,92 +1,120 @@
-DECLARE @SERVERNAME varchar(50)
-DECLARE @INSTANCENAME varchar(50)
+DECLARE @BACKUPINFO_TSQL     VARCHAR(8000)
+DECLARE @DBSIZE_SQL2000_TSQL VARCHAR(8000)
+DECLARE @DBSIZE_TSQL         VARCHAR(8000)
+DECLARE @DBINFO_SQL2000_TSQL VARCHAR(8000)
+DECLARE @DBINFO_TSQL         VARCHAR(8000)
+DECLARE @DBCC_DBINFO_TSQL    VARCHAR(8000)
 
-SET @SERVERNAME = CONVERT(varchar(50),(SELECT SERVERPROPERTY('MachineName')))
-SET @INSTANCENAME = CONVERT(varchar(50),(SELECT SERVERPROPERTY('InstanceName')))
+SET @BACKUPINFO_TSQL = '
+IF OBJECT_ID(''tempdb..##backupdate'') IS NOT NULL
+   DROP TABLE ##backupdate
+SELECT 
+	bs.[database_name]                                                          AS [DatabaseName], 
+	MAX(CASE WHEN bs.[type] = ''D'' THEN bs.[backup_finish_date] ELSE NULL END) AS [LastFullBackup],
+	MAX(CASE WHEN bs.[type] = ''I'' THEN bs.[backup_finish_date] ELSE NULL END) AS [LastDifferential],
+	MAX(CASE WHEN bs.[type] = ''L'' THEN bs.[backup_finish_date] ELSE NULL END) AS [LastLogBackup]
+INTO ##backupdate
+FROM msdb.dbo.[backupset]         bs
+JOIN msdb.dbo.[backupmediafamily] bmf ON bs.[media_set_id] = bmf.[media_set_id]
+GROUP BY bs.[database_name]
+ORDER BY bs.[database_name] DESC'
 
-IF OBJECT_ID('tempdb..#tmpbackupdate') IS NOT NULL
-   DROP TABLE #tmpbackupdate
-IF OBJECT_ID('tempdb..#tmpdbsizes') IS NOT NULL
-   DROP TABLE #tmpdbsizes
-IF OBJECT_ID('tempdb..#tmpdbsizes2') IS NOT NULL
-   DROP TABLE #tmpdbsizes2
-IF OBJECT_ID('tempdb..#tmpdbinfo') IS NOT NULL
-	DROP TABLE #tmpdbinfo
-IF OBJECT_ID('tempdb..#tmpdbccvalue') IS NOT NULL
-	DROP TABLE #tmpdbccvalue
+SET @DBSIZE_SQL2000_TSQL = '
+IF OBJECT_ID(''tempdb..##dbsizes'') IS NOT NULL
+   DROP TABLE ##dbsizes
+SELECT 
+	[dbid]                                         AS [database_id], 
+	NULL                                           AS [log_size_mb], 
+	NULL                                           AS [row_size_mb], 
+	CAST(SUM([size]) * 8. / 1024 AS DECIMAL(18,2)) AS [total_size_mb]
+INTO ##dbsizes
+FROM master.dbo.[sysaltfiles]
+GROUP BY [dbid]'
 
-SELECT bs.database_name AS DatabaseName, 
-	MAX(CASE WHEN bs.type = 'D' THEN bs.backup_finish_date ELSE NULL END) AS LastFullBackup,
-	MAX(CASE WHEN bs.type = 'I' THEN bs.backup_finish_date ELSE NULL END) AS LastDifferential,
-	MAX(CASE WHEN bs.type = 'L' THEN bs.backup_finish_date ELSE NULL END) AS LastLogBackup
-INTO #tmpbackupdate
-FROM msdb.dbo.backupset bs
-JOIN msdb.dbo.backupmediafamily bmf ON bs.media_set_id = bmf.media_set_id
-GROUP BY bs.database_name
-ORDER BY bs.database_name DESC
+SET @DBINFO_SQL2000_TSQL = '
+SELECT 
+	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''MachineName'')))    AS [ServerName],
+	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''InstanceName'')))   AS [InstanceName],
+	sdb.[name]                                    AS [DatabaseName], 
+	SUSER_SNAME(sdb.[sid])                        AS [Owner],
+	sdb.[crdate]								  AS [CreateDate],
+	DATABASEPROPERTYEX(sdb.[name], ''Status'')    AS [Status], 
+	DATABASEPROPERTYEX(sdb.[name], ''Collation'') AS [Collation], 
+	sdb.[cmptlevel]                               AS [CompatibilityLevel], 
+	DATABASEPROPERTYEX(sdb.[name], ''Recovery'')  AS [RecoveryMode], 
+	bd.[LastFullBackup]                           AS [LastFullBackup],
+	bd.[LastDifferential]                         AS [LastDifferential],
+	bd.[LastLogBackup]                            AS [LastLogBackup],
+	NULL                                          AS [LastDBCCCheckDB],
+	dbs.[log_size_mb]                             AS [LogSizeMB],
+	dbs.[row_size_mb]                             AS [RowSizeMB],
+	dbs.[total_size_mb]                           AS [TotalSizeMB],
+	GETDATE()                                     AS [Timestamp]
+FROM master.dbo.[sysdatabases] sdb
+LEFT OUTER JOIN ##backupdate   bd  ON sdb.[name] = bd.[DatabaseName]
+LEFT OUTER JOIN ##dbsizes      dbs ON sdb.[dbid] = dbs.[database_id]'
 
-IF LEFT(CAST(SERVERPROPERTY('ProductVersion') As Varchar),1)='8'
+SET @DBSIZE_TSQL = '
+IF OBJECT_ID(''tempdb..##dbsizes'') IS NOT NULL
+   DROP TABLE ##dbsizes
+SELECT 
+	[database_id], 
+	CAST(SUM(CASE WHEN [type_desc] = ''LOG''  THEN [size] END) * 8. / 1024 AS DECIMAL(18,2)) AS [log_size_mb],
+	CAST(SUM(CASE WHEN [type_desc] = ''ROWS'' THEN [size] END) * 8. / 1024 AS DECIMAL(18,2)) AS [row_size_mb],
+	CAST(SUM([size]) * 8. / 1024 AS DECIMAL(18,2))                                           AS [total_size_mb]
+INTO ##dbsizes
+FROM sys.[master_files]
+GROUP BY [database_id]'
+
+SET @DBCC_DBINFO_TSQL = '
+DECLARE @DBCC_DBINFO_TSQL VARCHAR(8000)
+SET @DBCC_DBINFO_TSQL = ''
+-- Insert results of DBCC DBINFO into temp table, transform into simpler table with database name and DATETIME of last known good DBCC CheckDB
+INSERT INTO ##dbinfo EXECUTE (''''DBCC DBINFO ( ''''''''?'''''''' ) WITH TABLERESULTS'''');
+INSERT INTO ##dbccvalue (DatabaseName, LastDBCCCheckDB)   (SELECT ''''?'''', [Value] FROM ##dbinfo WHERE Field = ''''dbi_dbccLastKnownGood'''');
+TRUNCATE TABLE ##dbinfo;''
+
+IF OBJECT_ID(''tempdb..##dbinfo'') IS NOT NULL
+	DROP TABLE ##dbinfo
+IF OBJECT_ID(''tempdb..##dbccvalue'') IS NOT NULL
+	DROP TABLE ##dbccvalue
+CREATE TABLE ##dbinfo (Id INT IDENTITY(1,1), ParentObject VARCHAR(255), [Object] VARCHAR(255), Field VARCHAR(255), [Value] VARCHAR(255))
+CREATE TABLE ##dbccvalue  (DatabaseName VARCHAR(255), LastDBCCCheckDB DATETIME)
+EXECUTE sp_MSforeachdb @DBCC_DBINFO_TSQL'
+
+SET @DBINFO_TSQL = '
+SELECT 
+	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''MachineName'')))    AS [ServerName],
+	CONVERT(VARCHAR(50),(SELECT SERVERPROPERTY(''InstanceName'')))   AS [InstanceName],
+	db.[name]                   AS [DatabaseName], 
+	SUSER_SNAME(db.[owner_sid]) AS [Owner],
+	db.[create_date]			AS [CreateDate],
+	db.[state_desc]             AS [Status], 
+	db.[collation_name]			AS [Collation],
+	db.[compatibility_level]    AS [CompatibilityLevel], 
+	db.[recovery_model_desc]    AS [RecoveryMode], 
+	bd.[LastFullBackup]         AS [LastFullBackup],
+	bd.[LastDifferential]       AS [LastDifferential],
+	bd.[LastLogBackup]          AS [LastLogBackup],
+	dv.[LastDBCCCheckDB]        AS [LastDBCCCheckDB],
+	dbs.[log_size_mb]           AS [LogSizeMB],
+	dbs.[row_size_mb]           AS [RowSizeMB],
+	dbs.[total_size_mb]         AS [TotalSizeMB],
+	GETDATE()                   AS [Timestamp]
+FROM sys.databases db
+LEFT OUTER JOIN ##backupdate bd  ON db.[name]        = bd.[DatabaseName]
+LEFT OUTER JOIN ##dbsizes    dbs ON db.[database_id] = dbs.[database_id]
+LEFT OUTER JOIN ##dbccvalue  dv  ON db.[name]        = dv.[DatabaseName]'
+
+EXEC (@BACKUPINFO_TSQL)
+IF LEFT(CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR),1)='8'
 BEGIN  
-	SELECT dbid as database_id, NULL as log_size_mb, NULL as row_size_mb, total_size_mb = CAST(SUM(size) * 8. / 1024 AS DECIMAL(18,2))
-	INTO #tmpdbsizes
-	FROM master.dbo.sysaltfiles
-	GROUP BY dbid
-
-	SELECT 
-		sdb.name as DatabaseName, 
-		suser_sname(sdb.sid) AS Owner,
-		databasepropertyex(sdb.name, 'Status') as Status, 
-		sdb.cmptlevel as CompatibilityLevel, 
-		databasepropertyex(sdb.name, 'Recovery') AS RecoveryMode, 
-		bd.LastFullBackup,
-		bd.LastDifferential,
-		bd.LastLogBackup,
-		NULL as LastDBCCCheckDB,
-		dbs.log_size_mb as LogSizeMB,
-		dbs.row_size_mb as RowSizeMB,
-		dbs.total_size_mb as TotalSizeMB,
-		getdate() as Timestamp
-	FROM master.dbo.sysdatabases sdb
-	LEFT OUTER JOIN #tmpbackupdate bd ON sdb.name = bd.DatabaseName
-	LEFT OUTER JOIN #tmpdbsizes dbs ON sdb.dbid = dbs.database_id
+	EXEC (@DBSIZE_SQL2000_TSQL)
+	EXEC (@DBINFO_SQL2000_TSQL)
 END
 ELSE
 BEGIN
-	SELECT
-		database_id, 
-		log_size_mb = CAST(SUM(CASE WHEN type_desc = 'LOG' THEN size END) * 8. / 1024 AS DECIMAL(18,2)),
-		row_size_mb = CAST(SUM(CASE WHEN type_desc = 'ROWS' THEN size END) * 8. / 1024 AS DECIMAL(18,2)),
-		total_size_mb = CAST(SUM(size) * 8. / 1024 AS DECIMAL(18,2))
-	INTO #tmpdbsizes2
-	FROM sys.master_files
-	GROUP BY database_id
-
-    CREATE TABLE #tmpdbinfo (Id INT IDENTITY(1,1), ParentObject VARCHAR(255), [Object] VARCHAR(255), Field VARCHAR(255), [Value] VARCHAR(255))
-    CREATE TABLE #tmpdbccvalue  (DatabaseName VARCHAR(255), LastDBCCCheckDB DATETIME)
-
-	EXECUTE sp_MSforeachdb '
-	-- Insert results of DBCC DBINFO into temp table, transform into simpler table with database name and datetime of last known good DBCC CheckDB
-	INSERT INTO #tmpdbinfo EXECUTE (''DBCC DBINFO ( ''''?'''' ) WITH TABLERESULTS'');
-	INSERT INTO #tmpdbccvalue (DatabaseName, LastDBCCCheckDB)   (SELECT ''?'', [Value] FROM #tmpdbinfo WHERE Field = ''dbi_dbccLastKnownGood'');
-	TRUNCATE TABLE #tmpdbinfo;
-	'
-
-	SELECT 
-		db.name as DatabaseName, 
-		suser_sname(db.owner_sid) AS Owner,
-		db.state_desc as Status, 
-		db.compatibility_level as CompatibilityLevel, 
-		db.recovery_model_desc as RecoveryMode, 
-		bd.LastFullBackup,
-		bd.LastDifferential,
-		bd.LastLogBackup,
-		dv.LastDBCCCheckDB,
-		dbs.log_size_mb as LogSizeMB,
-		dbs.row_size_mb as RowSizeMB,
-		dbs.total_size_mb as TotalSizeMB,
-		getdate() as Timestamp
-	FROM sys.databases db
-	LEFT OUTER JOIN #tmpbackupdate bd ON db.name = bd.DatabaseName
-	LEFT OUTER JOIN #tmpdbsizes2 dbs ON db.database_id = dbs.database_id
-	LEFT OUTER JOIN #tmpdbccvalue dv ON db.name = dv.DatabaseName
+	EXEC (@DBSIZE_TSQL)
+	EXEC (@DBCC_DBINFO_TSQL)
+	EXEC (@DBINFO_TSQL)
 END

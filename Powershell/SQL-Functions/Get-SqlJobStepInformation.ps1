@@ -146,8 +146,8 @@ SELECT
 			ELSE sjs.[last_run_time] 
 		END)               AS [LastRunDate], 
 	CASE sjs.[last_run_date] 
-		WHEN 0 THEN CONVERT(VARCHAR(15), CONVERT(time, STUFF(STUFF(RIGHT(''000000'' + CONVERT(VARCHAR(6), sjh.[run_duration]), 6), 3, 0, '':''), 6, 0, '':'')), 120)
-		ELSE CONVERT(VARCHAR(15), CONVERT(time, STUFF(STUFF(RIGHT(''000000'' + CONVERT(VARCHAR(6), sjs.[last_run_duration]), 6), 3, 0, '':''), 6, 0, '':'')), 120) 
+		WHEN 0 THEN CONVERT(VARCHAR(15), STUFF(STUFF(RIGHT(''000000'' + CONVERT(VARCHAR(6), sjh.[run_duration]), 6), 3, 0, '':''), 6, 0, '':''), 120)
+		ELSE CONVERT(VARCHAR(15), STUFF(STUFF(RIGHT(''000000'' + CONVERT(VARCHAR(6), sjs.[last_run_duration]), 6), 3, 0, '':''), 6, 0, '':''), 120) 
 	END                    AS [LastRunDuration], 
 	CASE sjs.[subsystem]
 		WHEN ''TSQL'' THEN SUSER_SNAME(sj.[owner_sid]) 

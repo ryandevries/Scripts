@@ -64,7 +64,7 @@ SELECT @@SERVERNAME as [Server], j.Name as [Job Name],
 	WHEN '99991231' THEN '' 
 	ELSE ' and ending on ' + CONVERT(varchar, CONVERT(datetime,CONVERT(char(8), s.active_end_date)), 101)
 	END AS [Schedule],
-	CONVERT(varchar, msdb.dbo.agent_datetime(js.next_run_date, js.next_run_time), 120) AS [Next Run Date]
+	CASE js.next_run_date WHEN 0 THEN NULL ELSE CONVERT(varchar, msdb.dbo.agent_datetime(js.next_run_date, js.next_run_time), 120) END AS [Next Run Date]
 INTO #tmpjobschedules
 FROM msdb.dbo.sysjobs j
 LEFT OUTER JOIN msdb.dbo.sysjobschedules js on j.job_id = js.job_id
