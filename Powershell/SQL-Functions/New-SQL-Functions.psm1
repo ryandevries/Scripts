@@ -1792,7 +1792,7 @@ ORDER BY [UserType], [UserName]
         # This query returns the database-level users
         $get_databaseSecurity_query    = @"
 -- Users and Groups
-SELECT SERVERPROPERTY('ServerName') AS [InstanceName], DB_NAME() AS [DatabaseName], pe.[name] AS [UserName], sl.[name] AS [LoginName], CASE WHEN DATALENGTH(pe.[sid]) = 28 AND pe.[type] = 'S' AND pe.[principal_id] > 4 THEN 'SQL_USER_NO_LOGIN' ELSE pe.[type_desc] END AS [UserType], CASE WHEN DATALENGTH(pe.[sid]) = 28 AND pe.[type] = 'S' AND pe.[principal_id] > 4 THEN 'False' WHEN pe.[principal_id] <= 4 THEN 'False' WHEN sl.[sid] IS NULL THEN 'True' ELSE 'False' END AS [Orphaned], pe.[default_schema_name] AS [DefaultSchema], pe.[principal_id],
+SELECT SERVERPROPERTY('ServerName') AS [InstanceName], DB_NAME() AS [DatabaseName], pe.[name] AS [UserName], sl.[name] AS [LoginName], CASE WHEN DATALENGTH(pe.[sid]) = 28 AND pe.[type] = 'S' AND pe.[principal_id] > 4 THEN 'SQL_USER_NO_LOGIN' ELSE pe.[type_desc] END AS [UserType], CASE WHEN DATALENGTH(pe.[sid]) = 28 AND pe.[type] = 'S' AND pe.[principal_id] > 4 THEN 'False' WHEN pe.[principal_id] <= 4 THEN 'False' WHEN sl.[sid] IS NULL THEN 'True' ELSE 'False' END AS [Orphaned], pe.[default_schema_name] AS [DefaultSchema],
 'USE ' + QUOTENAME(DB_NAME()) COLLATE database_default + '; ' + 'CREATE USER ' + QUOTENAME(pe.[name]) COLLATE database_default + ' FOR LOGIN ' + QUOTENAME(sl.[name]) COLLATE database_default + CASE WHEN pe.[default_schema_name] IS NULL THEN '' ELSE ' WITH DEFAULT_SCHEMA = ' + QUOTENAME(pe.[default_schema_name]) COLLATE database_default END AS [CreateTSQL],
 'USE ' + QUOTENAME(DB_NAME()) COLLATE database_default + '; ' + 'DROP USER '   + QUOTENAME(pe.[name]) COLLATE database_default AS [DropTSQL]
 FROM sys.database_principals AS pe
