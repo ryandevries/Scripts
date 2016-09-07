@@ -8,6 +8,8 @@ GO
 -- Create date: 2016-09-07
 -- Description:	This is a wrapper function for Paul Brewer's sp_RestoreGene (https://paulbrewer.wordpress.com/sp_restoregene/)
 --				It is designed to be executed using SQLCMD as an agent job step after backups are performed, and output a restoration script to the Output file specified in the agent job step.
+--              Example: sqlcmd -E -S $(ESCAPE_SQUOTE(SRVR)) -d DBAUtility -Q "EXECUTE [dbo].[sp_RestoreGeneWrapper] @WithRecovery = 1, @WithReplace = 1" -b
+--                       Output File: \\backups\Restore Scripts\RestoreScript_$(ESCAPE_SQUOTE(SRVR))_$(ESCAPE_SQUOTE(STRTDT))_$(ESCAPE_SQUOTE(STRTTM)).sql
 --              It also logs the restore information to a table in the DBAUtility database for reference, keeping one week's worth of restore scripts.
 --				It supports most of the same parameters as sp_RestoreGene, minus the ones that don't make sense for this application.
 --             
