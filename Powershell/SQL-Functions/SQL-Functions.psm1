@@ -1,3 +1,84 @@
+FUNCTION Get-SqlInstances {
+<#
+.SYNOPSIS 
+    Returns of object of SQL instances
+.DESCRIPTION
+	Returns of object of SQL instances that match a given environment and are accessible based on the SQL inventory, along with most inventory data about the instance
+.PARAMETER  Development
+    Returns all development instances
+.PARAMETER  Test
+    Returns all test instances
+.PARAMETER  Production
+    Returns all production instances
+.EXAMPLE
+    PS C:\> Get-SqlInstances -Development -Test
+.NOTES
+    Author      : Ryan DeVries
+    Last Updated: 2015/06/11
+    Version     : 1
+.INPUTS
+    [switch]
+.OUTPUTS
+    [object]
+#>
+    [CmdletBinding()]
+    Param(
+	    [Parameter(Position=0,Mandatory=$false,HelpMessage="Toggles development instances")]
+        [switch]$Development,
+        [Parameter(Position=1,Mandatory=$false,HelpMessage="Toggles test instances")]
+        [switch]$Test,
+        [Parameter(Position=2,Mandatory=$false,HelpMessage="Toggles production instances")]
+        [switch]$Production,
+        [Parameter(Position=3,Mandatory=$false,HelpMessage="Includes inaccessible instances")]
+        [switch]$IncludeInaccessible
+    )
+ 
+    begin {
+        Import-SQLPS
+        Write-Verbose "Detected parameter set $($PSCmdlet.ParameterSetName)"
+        $scriptstring = "Starting $($MyInvocation.MyCommand)"
+        foreach ($param in $PSBoundParameters.GetEnumerator()){ $scriptstring += " -$($param.key) $($param.value)"}
+        Write-Verbose $scriptstring
+        $inventoryinstance = 'server'
+        $inventorydatabase = 'ServerInventory'
+    }
+ 
+    process {
+        $blank  = $true
+        if (!$IncludeInaccessible) { $filter1 = "AND si.[Code] = 2 "}
+        $filter2 = "AND [Environment] IN ("
+        if ($development) { $filter2 += "'Development'," ; $blank = $false }
+        if ($test)        { $filter2 += "'Test',"        ; $blank = $false }
+        if ($production)  { $filter2 += "'Production',"  ; $blank = $false }
+        
+        if ($blank) { $filter2  = "" } else { $filter2 = $filter2 -replace ".$" ; $filter2 += ")" }
+        $get_instances_query = "
+        SELECT 
+	        s.[ServerID], si.[InstanceID],
+	        s.[Name] + CASE WHEN si.[Name] = 'Default Instance' THEN '' ELSE '\' + si.[Name] END AS [InstanceName],
+	        s.[Environment], s.[OS], s.[OSEdition], si.[Version] AS [SQLVersion], si.[Build] AS [SQLBuild], si.[BuildNumber] AS [SQLBuildNumber], si.[Edition] AS [SQLEdition], si.[Authentication], si.[License], s.[NumCores] AS [Cores],
+	        CASE s.[Environment] WHEN 'Production' THEN CASE WHEN s.[NumCores] < 4 AND si.[Edition] NOT LIKE 'Express%' THEN 4 WHEN s.[NumCores] >= 4 AND si.[Edition] NOT LIKE 'Express%' THEN s.[NumCores] END END AS [LicensableCores],
+            s.[MemoryMB], si.[MemoryAllocatedMB], si.[NumCALs] AS [CALs], si.[MaxDOP], si.[CTFP], si.[StartupTime] AS [Startup Time], si.[InRedGate], 
+	        s.[Notes] AS [Server Notes], si.[Notes] AS [Instance Notes], si.[LastUpdate] AS [Last Updated], si.[Code]
+        FROM		[dbo].[Servers] AS s 
+        INNER JOIN	[dbo].[SQLInstances] AS si ON si.ServerID = s.ServerID
+        WHERE si.[Name] IS NOT NULL $filter1 $filter2 
+        ORDER BY InstanceName"
+        try { 
+            Write-Verbose "Trying to pull instances with filter: $filter1 $filter2"
+            $instances = Invoke-Sqlcmd -Serverinstance $inventoryinstance -Database $inventorydatabase -Query $get_instances_query -Connectiontimeout 5
+            Write-Verbose "Retrieved instances"
+            $instances
+        }
+        catch { 
+            Write-Verbose "ERROR : $($_.Exception)"
+            throw $_ 
+        }
+    }
+    
+    end { Write-Verbose "Ending $($MyInvocation.Mycommand)" }
+}
+
 FUNCTION Get-SqlConfigValue {
 <#
 .SYNOPSIS 

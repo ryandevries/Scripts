@@ -76,7 +76,7 @@ DECLARE @jobid int`n"
     process {
         Write-Verbose "Getting instances from current inventory"
         Write-Progress -Activity "Pulling instances..." -Status "Percent Complete: 0%" -PercentComplete 0
-        $instances = Get-SqlInstances
+        $instances = Get-SqlInstances -IncludeInaccessible
         $totalstep = $instances.Count + 5
         $step      = 0
         foreach ($instance in $instances){
